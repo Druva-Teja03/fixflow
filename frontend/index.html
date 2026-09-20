@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FixFlow — Smart Campus Issue Reporting & Resolution</title>
+  <meta name="description" content="FixFlow lets students report campus problems in seconds and helps management track, prioritize, assign, and resolve them with AI assistance." />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <div class="brand-logo" style="justify-content: center; margin-bottom: 0.5rem;">
+          ⚡ FixFlow <span class="badge">Campus Ops</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+          Smart Campus Issue Reporting & Resolution Platform
+        </p>
+      </div>
+
+      <div id="alert-box" style="display: none; padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; font-size: 0.875rem;"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">Campus Email</label>
+          <input
+            type="email"
+            id="email"
+            class="form-control"
+            placeholder="e.g., student1@fixflow.demo"
+            required
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            class="form-control"
+            placeholder="••••••••"
+            required
+            autocomplete="current-password"
+          />
+        </div>
+
+        <button type="submit" id="submit-btn" class="btn btn-primary btn-block btn-lg" style="margin-top: 0.5rem;">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Quick Demo Credentials for Fast Hackathon Evaluation -->
+      <div style="margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 700; text-align: center;">
+          Demo One-Click Fill (Password: Demo@1234)
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="fillDemo('admin@fixflow.demo')">
+            👑 Admin
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="fillDemo('student1@fixflow.demo')">
+            🎓 Student
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="fillDemo('electric@fixflow.demo')">
+            ⚡ Electrical
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="fillDemo('it@fixflow.demo')">
+            💻 IT Staff
+          </button>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+        Don't have an account? <a href="/register.html" style="font-weight: 600;">Register as Student</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    function fillDemo(email) {
+      document.getElementById('email').value = email;
+      document.getElementById('password').value = 'Demo@1234';
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const submitBtn = document.getElementById('submit-btn');
+      const alertBox = document.getElementById('alert-box');
+
+      alertBox.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+
+      try {
+        const user = await auth.login(email, password);
+        showToast(`Welcome back, ${user.name}!`, 'success');
+        setTimeout(() => {
+          auth.redirectByRole(user.role);
+        }, 400);
+      } catch (err) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+        alertBox.style.color = '#f87171';
+        alertBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        alertBox.textContent = err.message || 'Invalid email or password.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+      }
+    });
+
+    // If user already logged in, redirect
+    window.addEventListener('DOMContentLoaded', () => {
+      const user = api.getUser();
+      const token = api.getToken();
+      if (user && token) {
+        auth.redirectByRole(user.role);
+      }
+    });
+  </script>
+</body>
+</html>

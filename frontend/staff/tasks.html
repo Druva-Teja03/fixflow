@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Staff Tasks — FixFlow Field Operations</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container nav-content">
+      <div class="brand-logo">
+        ⚡ FixFlow <span class="badge" style="background: #10b981;">Staff Portal</span>
+      </div>
+      <div class="nav-links">
+        <a href="/staff/tasks.html" style="font-weight: 600; color: #fff;">My Task Queue</a>
+      </div>
+      <div class="nav-user">
+        <span id="user-greeting" style="font-size: 0.85rem; color: var(--text-sub);"></span>
+        <button onclick="auth.logout()" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container" style="padding-top: 2rem; padding-bottom: 4rem;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+      <div>
+        <h1 id="welcome-title" style="font-size: 1.85rem; margin-bottom: 0.35rem;">Assigned Maintenance Tasks</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+          Update job progress from <strong style="color: var(--status-in-progress);">In Progress</strong> to <strong style="color: var(--status-resolved);">Resolved</strong> as repairs are finished.
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <span id="team-badge" class="badge" style="font-size: 0.85rem; padding: 0.4rem 0.9rem; background: #334155;">Department: Maintenance</span>
+        <button onclick="loadStaffTasks()" class="btn btn-outline btn-sm">🔄 Refresh Tasks</button>
+      </div>
+    </div>
+
+    <!-- Tasks List Container -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h2 style="font-size: 1.25rem;">Your Task Queue</h2>
+        <span id="task-count-label" style="font-size: 0.85rem; color: var(--text-muted);"></span>
+      </div>
+
+      <div id="tasks-container">
+        <!-- Rendered by loadStaffTasks() -->
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script>
+    // Helper to format date strings
+    function formatDate(dateStr) {
+      if (!dateStr) return "N/A";
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    function createPriorityBadge(priority) {
+      const badge = document.createElement("span");
+      badge.className = `badge badge-priority-${priority.toLowerCase()}`;
+      badge.textContent = priority;
+      return badge;
+    }
+
+    function createStatusBadge(status) {
+      const badge = document.createElement("span");
+      const key = status.toLowerCase().replace(" ", "-");
+      badge.className = `badge badge-status-${key}`;
+      badge.textContent = status;
+      return badge;
+    }
+
+    async function loadStaffTasks() {
+      const container = document.getElementById("tasks-container");
+      if (!container) return;
+
+      container.innerHTML = `
+        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+          <div class="spinner"></div>
+          <p style="margin-top: 0.75rem; font-size: 0.9rem;">Loading your assigned tasks...</p>
+        </div>
+      `;
+
+      try {
+        const tasks = await api.get("/staff/tasks");
+        renderStaffTasks(tasks);
+      } catch (err) {
+        console.error("Failed to load staff tasks:", err);
+        container.innerHTML = `
+          <div style="text-align: center; padding: 2.5rem; color: #ef4444;">
+            <p style="font-weight: 600; margin-bottom: 0.5rem;">Failed to load tasks</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">${err.message || "An unexpected error occurred."}</p>
+            <button onclick="loadStaffTasks()" class="btn btn-outline btn-sm" style="margin-top: 1rem;">Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    function renderStaffTasks(tasks) {
+      const container = document.getElementById("tasks-container");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const countLabel = document.getElementById("task-count-label");
+      if (countLabel) countLabel.textContent = `${tasks.length} total assignment(s)`;
+
+      if (!tasks || tasks.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 3.5rem 1rem; color: var(--text-muted);">
+            <p style="font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem; color: #fff;">🎉 All caught up!</p>
+            <p style="font-size: 0.9rem;">No active maintenance tasks are currently assigned to you.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const listDiv = document.createElement("div");
+      listDiv.style.display = "flex";
+      listDiv.style.flexDirection = "column";
+      listDiv.style.gap = "1.25rem";
+
+      tasks.forEach((t) => {
+        const taskCard = document.createElement("div");
+        taskCard.className = "card";
+        taskCard.style.background = "rgba(15, 23, 42, 0.4)";
+        taskCard.style.border = "1px solid var(--border-color)";
+        taskCard.style.padding = "1.25rem";
+
+        // Top Row: Title & Badges
+        const topRow = document.createElement("div");
+        topRow.style.display = "flex";
+        topRow.style.justifyContent = "space-between";
+        topRow.style.alignItems = "flex-start";
+        topRow.style.flexWrap = "wrap";
+        topRow.style.gap = "0.75rem";
+        topRow.style.marginBottom = "0.75rem";
+
+        const titleDiv = document.createElement("div");
+        const idSpan = document.createElement("span");
+        idSpan.style.fontSize = "0.85rem";
+        idSpan.style.fontWeight = "700";
+        idSpan.style.color = "var(--primary)";
+        idSpan.textContent = `#${t.issue_id} `;
+
+        const titleHeader = document.createElement("h3");
+        titleHeader.style.fontSize = "1.15rem";
+        titleHeader.style.display = "inline";
+        titleHeader.style.color = "#fff";
+        titleHeader.textContent = t.title;
+
+        titleDiv.appendChild(idSpan);
+        titleDiv.appendChild(titleHeader);
+        topRow.appendChild(titleDiv);
+
+        const badgeGroup = document.createElement("div");
+        badgeGroup.style.display = "flex";
+        badgeGroup.style.gap = "0.4rem";
+        badgeGroup.style.alignItems = "center";
+        badgeGroup.appendChild(createStatusBadge(t.status));
+        badgeGroup.appendChild(createPriorityBadge(t.priority));
+
+        const catBadge = document.createElement("span");
+        catBadge.className = "badge";
+        catBadge.style.background = "#334155";
+        catBadge.textContent = t.category;
+        badgeGroup.appendChild(catBadge);
+
+        topRow.appendChild(badgeGroup);
+        taskCard.appendChild(topRow);
+
+        // Description
+        const descP = document.createElement("p");
+        descP.style.fontSize = "0.9rem";
+        descP.style.color = "var(--text-sub)";
+        descP.style.lineHeight = "1.5";
+        descP.style.marginBottom = "1rem";
+        descP.textContent = t.description;
+        taskCard.appendChild(descP);
+
+        // Metadata Bar
+        const metaGrid = document.createElement("div");
+        metaGrid.style.display = "flex";
+        metaGrid.style.flexWrap = "wrap";
+        metaGrid.style.gap = "1.5rem";
+        metaGrid.style.fontSize = "0.8rem";
+        metaGrid.style.color = "var(--text-muted)";
+        metaGrid.style.padding = "0.75rem 0";
+        metaGrid.style.borderTop = "1px solid rgba(255,255,255,0.06)";
+        metaGrid.style.borderBottom = "1px solid rgba(255,255,255,0.06)";
+        metaGrid.style.marginBottom = "1rem";
+
+        const locSpan = document.createElement("span");
+        locSpan.textContent = `📍 ${t.room ? `${t.block}, ${t.room}` : t.block}`;
+        metaGrid.appendChild(locSpan);
+
+        const repSpan = document.createElement("span");
+        repSpan.textContent = `👤 Reported by: ${t.reporter_name}`;
+        metaGrid.appendChild(repSpan);
+
+        const assignedSpan = document.createElement("span");
+        assignedSpan.textContent = `📅 Assigned: ${formatDate(t.assigned_at)}`;
+        metaGrid.appendChild(assignedSpan);
+
+        const suppSpan = document.createElement("span");
+        suppSpan.textContent = `👍 ${t.support_count} supporters`;
+        metaGrid.appendChild(suppSpan);
+
+        taskCard.appendChild(metaGrid);
+
+        // Action Buttons Row
+        const actionsRow = document.createElement("div");
+        actionsRow.style.display = "flex";
+        actionsRow.style.justifyContent = "space-between";
+        actionsRow.style.alignItems = "center";
+        actionsRow.style.flexWrap = "wrap";
+        actionsRow.style.gap = "0.75rem";
+
+        const quickButtons = document.createElement("div");
+        quickButtons.style.display = "flex";
+        quickButtons.style.gap = "0.5rem";
+
+        if (t.status === "Assigned") {
+          const btnInProg = document.createElement("button");
+          btnInProg.className = "btn btn-secondary btn-sm";
+          btnInProg.style.color = "var(--status-in-progress)";
+          btnInProg.textContent = "▶ Start Work (In Progress)";
+          btnInProg.addEventListener("click", () => handleStaffStatusUpdate(t.issue_id, "In Progress"));
+          quickButtons.appendChild(btnInProg);
+
+          const btnResolve = document.createElement("button");
+          btnResolve.className = "btn btn-primary btn-sm";
+          btnResolve.textContent = "✓ Mark Resolved";
+          btnResolve.addEventListener("click", () => handleStaffStatusUpdate(t.issue_id, "Resolved"));
+          quickButtons.appendChild(btnResolve);
+        } else if (t.status === "In Progress") {
+          const btnResolve = document.createElement("button");
+          btnResolve.className = "btn btn-primary btn-sm";
+          btnResolve.textContent = "✓ Complete & Mark Resolved";
+          btnResolve.addEventListener("click", () => handleStaffStatusUpdate(t.issue_id, "Resolved"));
+          quickButtons.appendChild(btnResolve);
+        } else if (t.status === "Resolved") {
+          const doneTag = document.createElement("span");
+          doneTag.style.fontSize = "0.85rem";
+          doneTag.style.color = "var(--status-resolved)";
+          doneTag.style.fontWeight = "600";
+          doneTag.textContent = "✓ Task Completed & Resolved";
+          quickButtons.appendChild(doneTag);
+        }
+
+        actionsRow.appendChild(quickButtons);
+
+        // Link to detail & comments
+        const detailLink = document.createElement("a");
+        detailLink.href = `/student/issue.html?id=${t.issue_id}`;
+        detailLink.className = "btn btn-outline btn-sm";
+        detailLink.textContent = "💬 View Details & Discussion →";
+        actionsRow.appendChild(detailLink);
+
+        taskCard.appendChild(actionsRow);
+        listDiv.appendChild(taskCard);
+      });
+
+      container.appendChild(listDiv);
+    }
+
+    async function handleStaffStatusUpdate(issueId, newStatus) {
+      try {
+        await api.patch(`/issues/${issueId}/status`, { status: newStatus });
+        showToast(`Task status moved to '${newStatus}'!`, "success");
+        await loadStaffTasks();
+      } catch (err) {
+        showToast(err.message || "Failed to update status.", "error");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Route guard: Only allow authenticated staff members
+      if (auth.requireAuth(["staff"])) {
+        const user = api.getUser();
+        if (user) {
+          document.getElementById("user-greeting").textContent = `Staff: ${user.name}`;
+          document.getElementById("welcome-title").textContent = `Hello, ${user.name.split(" ")[0]}!`;
+          if (user.team) {
+            document.getElementById("team-badge").textContent = `Department: ${user.team}`;
+          }
+        }
+        loadStaffTasks();
+      }
+    });
+  </script>
+</body>
+</html>

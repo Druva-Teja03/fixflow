@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Infrastructure Analytics — FixFlow Admin</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 640px) {
+      .analytics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .chart-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 380px;
+    }
+    .chart-container {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .heatmap-table-wrapper {
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+    .heatmap-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 4px;
+      font-size: 0.85rem;
+    }
+    .heatmap-table th {
+      padding: 0.75rem 0.5rem;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-muted);
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+    }
+    .heatmap-table th:first-child {
+      text-align: left;
+      padding-left: 1rem;
+    }
+    .heatmap-table td {
+      padding: 0.75rem 0.5rem;
+      text-align: center;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+    .heatmap-table td.row-label {
+      text-align: left;
+      padding-left: 1rem;
+      background: rgba(15, 23, 42, 0.6);
+      color: #fff;
+    }
+    .hotspot-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.6rem;
+      transition: var(--transition);
+    }
+    .hotspot-item:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container nav-content">
+      <div class="brand-logo">
+        ⚡ FixFlow <span class="badge" style="background: #8b5cf6;">Operations Admin</span>
+      </div>
+      <div class="nav-links">
+        <a href="/admin/dashboard.html">Live Incidents</a>
+        <a href="/admin/analytics.html" style="font-weight: 600; color: #fff;">Analytics</a>
+      </div>
+      <div class="nav-user" id="nav-user-container">
+        <span id="user-greeting" style="font-size: 0.85rem; color: var(--text-sub);"></span>
+        <button onclick="auth.logout()" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container" style="padding-top: 2rem; padding-bottom: 4rem;">
+    <!-- Page Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+      <div>
+        <h1 style="font-size: 1.85rem; margin-bottom: 0.25rem;">📊 Campus Operations Analytics</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+          Real-time incident trends, category breakdowns, location hotspots, and resolution performance.
+        </p>
+      </div>
+      <div>
+        <button id="btn-refresh-analytics" class="btn btn-outline btn-sm" onclick="loadAllAnalytics()">
+          🔄 Refresh Data
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Metric Summary Cards -->
+    <div class="stats-grid" style="margin-bottom: 2rem;">
+      <div class="card stat-card">
+        <span class="stat-label">Total Incidents</span>
+        <div id="stat-total" class="stat-value" style="color: #fff;">-</div>
+        <span class="stat-desc">Campus reports on record</span>
+      </div>
+      <div class="card stat-card">
+        <span class="stat-label">Active (Open)</span>
+        <div id="stat-open" class="stat-value" style="color: var(--status-open);">-</div>
+        <span class="stat-desc">Awaiting triage / assignment</span>
+      </div>
+      <div class="card stat-card">
+        <span class="stat-label">In Progress</span>
+        <div id="stat-in-progress" class="stat-value" style="color: var(--status-in-progress);">-</div>
+        <span class="stat-desc">Technicians actively repairing</span>
+      </div>
+      <div class="card stat-card">
+        <span class="stat-label">Resolved Issues</span>
+        <div id="stat-resolved" class="stat-value" style="color: var(--status-resolved);">-</div>
+        <span class="stat-desc">Successfully closed tickets</span>
+      </div>
+      <div class="card stat-card" style="border-left: 4px solid #8b5cf6;">
+        <span class="stat-label">Avg. Resolution Time</span>
+        <div id="stat-avg-res-time" class="stat-value" style="color: #c084fc; font-size: 1.8rem;">-</div>
+        <span id="stat-res-meta" class="stat-desc">Based on resolved tickets</span>
+      </div>
+    </div>
+
+    <!-- Charts Row 1: Category Doughnut & Block Bar -->
+    <div class="analytics-grid">
+      <!-- 1. Category Distribution -->
+      <div class="card chart-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.15rem;">Issues by Category</h2>
+          <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">All Time</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="categoryChart"></canvas>
+          <div id="category-empty" style="display: none; color: var(--text-muted); font-size: 0.9rem;">No category data available.</div>
+        </div>
+      </div>
+
+      <!-- 2. Block Distribution -->
+      <div class="card chart-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.15rem;">Issues by Campus Block</h2>
+          <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">Geographic Split</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="blockChart"></canvas>
+          <div id="block-empty" style="display: none; color: var(--text-muted); font-size: 0.9rem;">No block data available.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row 2: 30-Day Trend & Status Breakdown -->
+    <div class="analytics-grid">
+      <!-- 3. 30-Day Trend Line -->
+      <div class="card chart-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.15rem;">30-Day Issue Creation Trend</h2>
+          <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">Daily Volume</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+          <div id="trend-empty" style="display: none; color: var(--text-muted); font-size: 0.9rem;">No trend data available.</div>
+        </div>
+      </div>
+
+      <!-- 4. Status Breakdown -->
+      <div class="card chart-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.15rem;">Lifecycle Status Split</h2>
+          <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #c084fc;">Workflow State</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="statusChart"></canvas>
+          <div id="status-empty" style="display: none; color: var(--text-muted); font-size: 0.9rem;">No status data available.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Hotspots & Recurring Problem Areas -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h2 style="font-size: 1.25rem;">📍 Campus Problem Hotspots</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Locations with multiple reported problems — ideal for proactive infrastructure inspections.
+          </p>
+        </div>
+        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4);">
+          Attention Required
+        </span>
+      </div>
+      <div id="hotspots-list">
+        <div style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Loading hotspots...</div>
+      </div>
+    </div>
+
+    <!-- Section: Block x Category Heatmap Matrix -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h2 style="font-size: 1.25rem;">🗺️ Block × Category Intensity Heatmap</h2>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Matrix of issue density. Darker cells highlight frequent domain issues in specific campus blocks.
+          </p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+          <span>Low</span>
+          <div style="width: 80px; height: 12px; background: linear-gradient(to right, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.9)); border-radius: 6px;"></div>
+          <span>High Density</span>
+        </div>
+      </div>
+
+      <div class="heatmap-table-wrapper" id="heatmap-container">
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading heatmap...</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/analytics.js"></script>
+</body>
+</html>

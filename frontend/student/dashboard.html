@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard — FixFlow</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container nav-content">
+      <div class="brand-logo">
+        ⚡ FixFlow <span class="badge" style="background: #3b82f6;">Student Portal</span>
+      </div>
+      <div class="nav-links">
+        <a href="/student/dashboard.html" style="font-weight: 600; color: #fff;">Dashboard</a>
+        <a href="/student/report.html">Report Issue</a>
+        <a href="/student/my-reports.html">My Reports</a>
+      </div>
+      <div class="nav-user">
+        <span id="user-greeting" style="font-size: 0.85rem; color: var(--text-sub);"></span>
+        <button onclick="auth.logout()" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+    <!-- Welcome Header & Primary CTA -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+      <div>
+        <h1 id="welcome-title" style="font-size: 1.85rem; margin-bottom: 0.35rem;">Welcome back</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+          Report broken equipment, maintenance issues, or track your submitted requests.
+        </p>
+      </div>
+      <div>
+        <a href="/student/report.html" class="btn btn-primary btn-lg" style="box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
+          ➕ Report an Issue
+        </a>
+      </div>
+    </div>
+
+    <!-- Student Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-title">Active Reports</span>
+        <span class="stat-value" id="stat-active" style="color: #3b82f6;">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-title">In Progress</span>
+        <span class="stat-value" id="stat-in-progress" style="color: #f59e0b;">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-title">Resolved</span>
+        <span class="stat-value" id="stat-resolved" style="color: #10b981;">--</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-title">Total Submitted</span>
+        <span class="stat-value" id="stat-total">--</span>
+      </div>
+    </div>
+
+    <!-- Recent Reports Preview -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h2 style="font-size: 1.2rem;">Recent Reports by You</h2>
+        <a href="/student/my-reports.html" class="btn btn-outline btn-sm">View All</a>
+      </div>
+      <div id="recent-issues-container">
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Loading your recent reports...</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/student.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      initDashboard();
+    });
+  </script>
+</body>
+</html>

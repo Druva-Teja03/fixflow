@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Incident Triage & Assignment — FixFlow Admin</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container nav-content">
+      <div class="brand-logo">
+        ⚡ FixFlow <span class="badge" style="background: #8b5cf6;">Operations Admin</span>
+      </div>
+      <div class="nav-links">
+        <a href="/admin/dashboard.html">Live Incidents</a>
+        <a href="/admin/analytics.html">Analytics</a>
+      </div>
+      <div class="nav-user">
+        <span id="user-greeting" style="font-size: 0.85rem; color: var(--text-sub);"></span>
+        <button onclick="auth.logout()" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main id="issue-detail-main" class="container" style="max-width: 960px; padding-top: 2rem; padding-bottom: 4rem;">
+    <!-- Back Link -->
+    <div style="margin-bottom: 1.5rem;">
+      <a href="/admin/dashboard.html" style="color: var(--text-muted); font-size: 0.875rem;">
+        ← Back to Incident Dashboard
+      </a>
+    </div>
+
+    <!-- Issue Details Card -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <!-- Title & Badges Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <span id="detail-id" style="font-size: 0.9rem; font-weight: 700; color: var(--primary);"></span>
+          <h1 id="detail-title" style="font-size: 1.7rem; margin-top: 0.25rem;">Loading ticket...</h1>
+        </div>
+        <div id="detail-badges" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;"></div>
+      </div>
+
+      <!-- Description -->
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem;">
+          Reported Problem Description
+        </h3>
+        <p id="detail-desc" style="color: var(--text-sub); line-height: 1.6; white-space: pre-wrap;"></p>
+      </div>
+
+      <!-- AI Summary -->
+      <div id="detail-ai-summary-container" style="display: none; margin-bottom: 1.5rem; padding: 0.85rem 1.1rem; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: var(--radius-md);">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+          <span class="badge" style="background: #8b5cf6; font-size: 0.75rem;">✨ Smart Summary</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">(Rule-based inference)</span>
+        </div>
+        <p id="detail-ai-summary" style="color: #f1f5f9; font-size: 0.95rem; line-height: 1.5; margin: 0;"></p>
+      </div>
+
+      <!-- Metadata Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; padding: 1rem; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Location</span>
+          <div id="detail-location" style="font-weight: 600; color: #fff; font-size: 0.9rem;"></div>
+        </div>
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Original Reporter</span>
+          <div id="detail-reporter" style="font-weight: 600; color: #fff; font-size: 0.9rem;"></div>
+        </div>
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Reported Date</span>
+          <div id="detail-created" style="font-weight: 600; color: #fff; font-size: 0.9rem;"></div>
+        </div>
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Community Support</span>
+          <div style="font-weight: 600; color: #fff; font-size: 0.9rem;">
+            👍 <span id="detail-support-count">1</span> student(s)
+          </div>
+        </div>
+      </div>
+
+      <!-- Photo Attachment -->
+      <div id="detail-photo-container" style="display: none; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+          Attached Evidence Photo
+        </h3>
+        <a id="detail-photo-link" href="" target="_blank" title="Click to view high-resolution image">
+          <img id="detail-photo" src="" alt="Issue Evidence" style="max-width: 100%; max-height: 380px; border-radius: var(--radius-md); border: 1px solid var(--border-color); object-fit: contain; background: #0f172a;" />
+        </a>
+      </div>
+    </div>
+
+    <!-- Admin Operations Control Panel -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <h2 style="font-size: 1.3rem; margin-bottom: 1.25rem;">🛠️ Operations & Triage Controls</h2>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+        <!-- 1. Triage / Classification -->
+        <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: #fff;">1. Category & Priority Triage</h3>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" style="font-size: 0.8rem;">Priority Level</label>
+            <select id="triage-priority" class="form-control">
+              <option value="Critical">Critical (Safety/Emergency)</option>
+              <option value="High">High (Disruptive)</option>
+              <option value="Medium">Medium (Standard)</option>
+              <option value="Low">Low (Cosmetic)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" style="font-size: 0.8rem;">Category</label>
+            <select id="triage-category" class="form-control">
+              <option value="Equipment">Equipment</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Plumbing">Plumbing</option>
+              <option value="Cleaning">Cleaning</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Internet">Internet</option>
+              <option value="Doors/Windows">Doors/Windows</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <button id="btn-save-triage" class="btn btn-secondary btn-sm btn-block">
+            💾 Save Priority & Category
+          </button>
+        </div>
+
+        <!-- 2. Technician Assignment -->
+        <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: #fff;">2. Technician Dispatch</h3>
+          <p id="current-assignment-info" style="font-size: 0.85rem; color: #c084fc; margin-bottom: 0.75rem; font-weight: 500;">
+            Status: Unassigned
+          </p>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" style="font-size: 0.8rem;">Select Staff Technician</label>
+            <select id="assign-staff-select" class="form-control">
+              <option value="">Loading staff members...</option>
+            </select>
+          </div>
+          <button id="btn-assign-staff" class="btn btn-primary btn-sm btn-block">
+            👷 Assign Technician (Set Assigned)
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Workflow Status Actions -->
+      <div style="border-top: 1px solid var(--border-color); padding-top: 1.25rem;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #fff;">3. Quick Status Progression</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Advance the ticket according to campus operational policy (forward lifecycle progression):
+        </p>
+        <div id="status-action-buttons" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+          <!-- Dynamically populated with valid next steps by admin.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Lifecycle Stepper & Audit Log Card -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Resolution Workflow Timeline</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Trace every step from initial student submission to technician completion and closure.
+      </p>
+      <div id="admin-stepper-container"></div>
+      <div id="admin-history-list" style="margin-top: 1.5rem;"></div>
+    </div>
+
+    <!-- Discussion & Comments Section -->
+    <div class="card">
+      <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Incident Discussion & Work Notes</h2>
+      <div id="admin-comments-list" style="margin-bottom: 1.5rem;">
+        <!-- Rendered by admin.js -->
+      </div>
+
+      <!-- Post Comment Form -->
+      <form id="admin-comment-form" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <textarea
+          id="admin-comment-input"
+          class="form-control"
+          placeholder="Add an internal work note, follow-up instruction, or update..."
+          rows="3"
+          required
+        ></textarea>
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="submit" id="btn-post-comment" class="btn btn-primary">
+            Post Update / Comment
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/admin.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      initAdminIssue();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report an Issue — FixFlow</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    /* Multi-step indicator */
+    .steps-nav {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .steps-nav::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--border-color);
+      z-index: 1;
+      transform: translateY(-50%);
+    }
+    .step-item {
+      position: relative;
+      z-index: 2;
+      background: var(--bg-card);
+      padding: 0.5rem 0.9rem;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--border-color);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .step-item.active {
+      border-color: var(--primary);
+      color: #fff;
+      background: var(--bg-card);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+    .step-item.completed {
+      border-color: var(--status-resolved);
+      color: var(--status-resolved);
+    }
+    @media (max-width: 640px) {
+      .step-item span.step-label {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container nav-content">
+      <div class="brand-logo">
+        ⚡ FixFlow <span class="badge" style="background: #3b82f6;">Student Portal</span>
+      </div>
+      <div class="nav-links">
+        <a href="/student/dashboard.html">Dashboard</a>
+        <a href="/student/report.html" style="font-weight: 600; color: #fff;">Report Issue</a>
+        <a href="/student/my-reports.html">My Reports</a>
+      </div>
+      <div class="nav-user">
+        <button onclick="auth.logout()" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="container" style="max-width: 800px; padding-top: 2rem; padding-bottom: 4rem;">
+    <div style="margin-bottom: 1.5rem;">
+      <a href="/student/dashboard.html" style="color: var(--text-muted); font-size: 0.85rem;">← Back to Dashboard</a>
+      <h1 style="font-size: 1.75rem; margin-top: 0.5rem;">Report a Campus Problem</h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Provide details to help campus facilities dispatch the right team quickly.
+      </p>
+    </div>
+
+    <!-- Step Progress Indicator -->
+    <div class="steps-nav">
+      <div class="step-item active" id="step-indicator-1">
+        <span>1</span> <span class="step-label">Problem</span>
+      </div>
+      <div class="step-item" id="step-indicator-2">
+        <span>2</span> <span class="step-label">Classification</span>
+      </div>
+      <div class="step-item" id="step-indicator-3">
+        <span>3</span> <span class="step-label">Location</span>
+      </div>
+      <div class="step-item" id="step-indicator-4">
+        <span>4</span> <span class="step-label">Photo</span>
+      </div>
+      <div class="step-item" id="step-indicator-5">
+        <span>5</span> <span class="step-label">Review</span>
+      </div>
+    </div>
+
+    <!-- Error Banner -->
+    <div id="step-error" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.9rem;"></div>
+
+    <form id="report-form" class="card">
+      <!-- STEP 1: Describe the Problem -->
+      <div id="step-1">
+        <h2 style="font-size: 1.25rem; margin-bottom: 1.25rem;">Step 1: Describe the Problem</h2>
+        <div class="form-group">
+          <label class="form-label" for="title">Issue Title *</label>
+          <input
+            type="text"
+            id="title"
+            class="form-control"
+            placeholder="e.g., Broken projector in Room 204"
+            required
+            minlength="3"
+            maxlength="150"
+          />
+          <small style="color: var(--text-muted); font-size: 0.8rem;">A short, clear headline for the problem.</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="description">Detailed Description *</label>
+          <textarea
+            id="description"
+            class="form-control"
+            rows="4"
+            placeholder="e.g., The projector power switch light is blinking red, and the lamp does not strike when turned on."
+            required
+            minlength="5"
+          ></textarea>
+          <small style="color: var(--text-muted); font-size: 0.8rem;">Include details like symptoms, hazards, or timing.</small>
+        </div>
+      </div>
+
+      <!-- STEP 2: Category & Priority -->
+      <div id="step-2" style="display: none;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem;">
+          <h2 style="font-size: 1.25rem; margin: 0;">Step 2: Category & Priority</h2>
+          <div id="ai-suggest-badge-container"></div>
+        </div>
+        <div id="ai-suggestion-note" style="display: none; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #ddd6fe;">
+          <span style="font-weight: 600;">✨ Smart Suggestion:</span> <span id="ai-suggestion-text"></span>
+          <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem;">You can freely edit the category and priority below if needed.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="category">Issue Category *</label>
+          <select id="category" class="form-control" required>
+            <option value="">Loading categories...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="priority">Priority Level *</label>
+          <select id="priority" class="form-control" required>
+            <option value="">Loading priorities...</option>
+          </select>
+          <small style="color: var(--text-muted); font-size: 0.8rem;">
+            Critical = Safety hazard / blockage; High = Teaching disruption; Medium = Inconvenient; Low = Minor.
+          </small>
+        </div>
+      </div>
+
+      <!-- STEP 3: Location -->
+      <div id="step-3" style="display: none;">
+        <h2 style="font-size: 1.25rem; margin-bottom: 1.25rem;">Step 3: Location Details</h2>
+        <div class="form-group">
+          <label class="form-label" for="block">Campus Block *</label>
+          <select id="block" class="form-control" required>
+            <option value="">Loading blocks...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="building">Building / Floor</label>
+          <input
+            type="text"
+            id="building"
+            class="form-control"
+            placeholder="e.g., CS Building / 2nd Floor"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="room">Room or Specific Area</label>
+          <input
+            type="text"
+            id="room"
+            class="form-control"
+            placeholder="e.g., Room 204 or Corridor near Canteen"
+          />
+        </div>
+      </div>
+
+      <!-- STEP 4: Photo Upload -->
+      <div id="step-4" style="display: none;">
+        <h2 style="font-size: 1.25rem; margin-bottom: 1.25rem;">Step 4: Attach Photo (Optional)</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Attaching a clear photo helps maintenance staff bring the right replacement parts and tools.
+        </p>
+
+        <div style="border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 2rem; text-align: center; background: rgba(15, 23, 42, 0.5);">
+          <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" style="display: none;" />
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('photo-input').click()">
+            📷 Select Photo (JPG, PNG, WEBP — Max 5 MB)
+          </button>
+          
+          <div id="photo-preview-box" style="display: none; margin-top: 1.5rem;">
+            <img id="photo-preview" src="" alt="Selected Photo" style="max-width: 100%; max-height: 250px; border-radius: var(--radius-md); object-fit: contain; border: 1px solid var(--border-color);" />
+            <div style="margin-top: 0.75rem;">
+              <button type="button" id="btn-remove-photo" class="btn btn-outline btn-sm" style="color: #ef4444; border-color: #ef4444;">
+                ✕ Remove Photo
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5: Review & Submit -->
+      <div id="step-5" style="display: none;">
+        <h2 style="font-size: 1.25rem; margin-bottom: 1.25rem;">Step 5: Review & Submit</h2>
+
+        <!-- Phase 6 Duplicate Detection Card Placeholder -->
+        <div id="duplicate-placeholder" style="margin-bottom: 1.5rem; display: none;">
+          <!-- Will be activated in Phase 6 -->
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem;">
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Headline</span>
+            <div id="rev-title" style="font-weight: 700; font-size: 1.05rem; color: #fff;"></div>
+          </div>
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Description</span>
+            <div id="rev-desc" style="font-size: 0.95rem; color: var(--text-sub); white-space: pre-wrap;"></div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+              <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Category</span>
+              <div id="rev-cat" style="font-weight: 600; color: #fff;"></div>
+            </div>
+            <div>
+              <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Priority</span>
+              <div id="rev-prio" style="font-weight: 600; color: #fff;"></div>
+            </div>
+          </div>
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Location</span>
+            <div id="rev-loc" style="font-size: 0.95rem; color: #fff;"></div>
+          </div>
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Attachment</span>
+            <div id="rev-photo-info" style="font-size: 0.9rem; color: var(--text-muted);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Actions -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <button type="button" id="btn-prev" class="btn btn-outline" style="display: none;">
+          ← Previous
+        </button>
+        <div style="margin-left: auto; display: flex; gap: 0.75rem;">
+          <button type="button" id="btn-next" class="btn btn-primary">
+            Next →
+          </button>
+          <button type="submit" id="btn-submit" class="btn btn-primary btn-lg" style="display: none; background: #10b981;">
+            ✓ Submit Issue Report
+          </button>
+        </div>
+      </div>
+    </form>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/report.js"></script>
+</body>
+</html>

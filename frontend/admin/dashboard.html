@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Operations Dashboard — FixFlow</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container nav-content">
+      <div class="brand-logo">
+        ⚡ FixFlow <span class="badge" style="background: #8b5cf6;">Operations Admin</span>
+      </div>
+      <div class="nav-links">
+        <a href="/admin/dashboard.html" style="font-weight: 600; color: #fff;">Live Incidents</a>
+        <a href="/admin/analytics.html">Analytics</a>
+      </div>
+      <div class="nav-user">
+        <span id="user-greeting" style="font-size: 0.85rem; color: var(--text-sub);"></span>
+        <button onclick="auth.logout()" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container" style="padding-top: 2rem; padding-bottom: 4rem;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+      <div>
+        <h1 style="font-size: 1.85rem; margin-bottom: 0.35rem;">Campus Incident Management</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">
+          Real-time incident triage, technician dispatch, priority scheduling, and resolution tracking.
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.75rem;">
+        <button onclick="loadSummaryStats(); loadAdminIssues();" class="btn btn-outline btn-sm">
+          🔄 Refresh
+        </button>
+        <a href="/admin/analytics.html" class="btn btn-secondary btn-sm">
+          📊 View Analytics
+        </a>
+      </div>
+    </div>
+
+    <!-- 5 Live Stats Cards -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 2rem;">
+      <div class="stat-card" style="border-left: 4px solid var(--primary);">
+        <span class="stat-title">Total Reports</span>
+        <span class="stat-value" id="card-total">--</span>
+      </div>
+      <div class="stat-card" style="border-left: 4px solid var(--status-open);">
+        <span class="stat-title">Open Tickets</span>
+        <span class="stat-value" id="card-open" style="color: var(--status-open);">--</span>
+      </div>
+      <div class="stat-card" style="border-left: 4px solid var(--status-in-progress);">
+        <span class="stat-title">In Progress</span>
+        <span class="stat-value" id="card-in-progress" style="color: var(--status-in-progress);">--</span>
+      </div>
+      <div class="stat-card" style="border-left: 4px solid var(--priority-critical);">
+        <span class="stat-title">Critical Attention</span>
+        <span class="stat-value" id="card-critical" style="color: var(--priority-critical);">--</span>
+      </div>
+      <div class="stat-card" style="border-left: 4px solid var(--status-resolved);">
+        <span class="stat-title">Resolved</span>
+        <span class="stat-value" id="card-resolved" style="color: var(--status-resolved);">--</span>
+      </div>
+    </div>
+
+    <!-- Incident Control & Filter Card -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+        <h2 style="font-size: 1.25rem;">All Campus Incident Tickets</h2>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">
+          Click any row to open full ticket details, assign technicians, or update status.
+        </span>
+      </div>
+
+      <!-- Filters Bar -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
+        <!-- Search Box -->
+        <div>
+          <label class="form-label" style="font-size: 0.75rem;">Search</label>
+          <input
+            type="text"
+            id="filter-search"
+            class="form-control"
+            placeholder="Search title or details..."
+          />
+        </div>
+
+        <!-- Status Filter -->
+        <div>
+          <label class="form-label" style="font-size: 0.75rem;">Status</label>
+          <select id="filter-status" class="form-control">
+            <option value="">All Statuses</option>
+            <option value="Open">Open</option>
+            <option value="Assigned">Assigned</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+
+        <!-- Category Filter -->
+        <div>
+          <label class="form-label" style="font-size: 0.75rem;">Category</label>
+          <select id="filter-category" class="form-control">
+            <option value="">All Categories</option>
+            <option value="Equipment">Equipment</option>
+            <option value="Electrical">Electrical</option>
+            <option value="Plumbing">Plumbing</option>
+            <option value="Cleaning">Cleaning</option>
+            <option value="Furniture">Furniture</option>
+            <option value="Internet">Internet</option>
+            <option value="Doors/Windows">Doors/Windows</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <!-- Block Filter -->
+        <div>
+          <label class="form-label" style="font-size: 0.75rem;">Campus Block</label>
+          <select id="filter-block" class="form-control">
+            <option value="">All Blocks</option>
+            <option value="Block A">Block A</option>
+            <option value="Block B">Block B</option>
+            <option value="Block C">Block C</option>
+            <option value="Block D">Block D</option>
+          </select>
+        </div>
+
+        <!-- Priority Filter -->
+        <div>
+          <label class="form-label" style="font-size: 0.75rem;">Priority</label>
+          <select id="filter-priority" class="form-control">
+            <option value="">All Priorities</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+
+        <!-- Sort By -->
+        <div>
+          <label class="form-label" style="font-size: 0.75rem;">Sort Order</label>
+          <select id="filter-sort" class="form-control">
+            <option value="newest">Newest First</option>
+            <option value="priority">Priority (Critical First)</option>
+            <option value="support_count">Community Support</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filter Actions -->
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+        <button id="btn-reset-filters" class="btn btn-outline btn-sm">
+          Reset Filters
+        </button>
+      </div>
+
+      <!-- Issues Table Container -->
+      <div id="issues-table-container">
+        <!-- Dynamically rendered by admin.js -->
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/admin.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      initAdminDashboard();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Issue Details — FixFlow</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="container nav-content">
+      <div class="brand-logo">
+        ⚡ FixFlow <span class="badge" style="background: #3b82f6;">Student Portal</span>
+      </div>
+      <div class="nav-links">
+        <a href="/student/dashboard.html">Dashboard</a>
+        <a href="/student/report.html">Report Issue</a>
+        <a href="/student/my-reports.html" style="font-weight: 600; color: #fff;">My Reports</a>
+      </div>
+      <div class="nav-user">
+        <button onclick="auth.logout()" class="btn btn-outline btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container" style="max-width: 860px; padding-top: 2rem; padding-bottom: 4rem;">
+    <div style="margin-bottom: 1.5rem;">
+      <a href="/student/my-reports.html" style="color: var(--text-muted); font-size: 0.85rem;">← Back to My Reports</a>
+    </div>
+
+    <!-- Issue Detail Card -->
+    <div id="issue-detail-card" class="card" style="margin-bottom: 2rem;">
+      <!-- Title & Badges -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <span id="detail-id" style="font-size: 0.85rem; font-weight: 700; color: var(--primary);"></span>
+          <h1 id="detail-title" style="font-size: 1.6rem; margin-top: 0.25rem;">Loading issue...</h1>
+        </div>
+        <div id="detail-badges" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;"></div>
+      </div>
+
+      <!-- Description -->
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.4rem;">Description</h3>
+        <p id="detail-desc" style="color: var(--text-sub); line-height: 1.6; white-space: pre-wrap;"></p>
+      </div>
+
+      <!-- Location & Metadata Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; padding: 1rem; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Location</span>
+          <div id="detail-location" style="font-weight: 600; color: #fff; font-size: 0.9rem;"></div>
+        </div>
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Reported By</span>
+          <div id="detail-reporter" style="font-weight: 600; color: #fff; font-size: 0.9rem;"></div>
+        </div>
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Reported On</span>
+          <div id="detail-created" style="font-weight: 600; color: #fff; font-size: 0.9rem;"></div>
+        </div>
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Community Support</span>
+          <div style="font-weight: 600; color: #fff; font-size: 0.9rem;">
+            👍 <span id="detail-support-count">1</span> student(s)
+          </div>
+        </div>
+        <div>
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Assigned Technician</span>
+          <div id="detail-assigned-staff" style="font-weight: 600; color: #fff; font-size: 0.9rem;">Pending Assignment</div>
+        </div>
+      </div>
+
+      <!-- Photo Attachment -->
+      <div id="detail-photo-container" style="display: none; margin-bottom: 2rem;">
+        <h3 style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">Attached Evidence</h3>
+        <a id="detail-photo-link" href="" target="_blank" title="Click to view full size">
+          <img id="detail-photo" src="" alt="Issue Photo" style="max-width: 100%; max-height: 360px; border-radius: var(--radius-md); border: 1px solid var(--border-color); object-fit: contain; background: #0f172a;" />
+        </a>
+      </div>
+
+      <!-- Status Timeline Stepper -->
+      <div style="margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Resolution Workflow</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Track how this ticket moves from submission to completion by campus maintenance.
+        </p>
+        <div id="stepper-container"></div>
+        <div id="history-list" style="margin-top: 1rem;"></div>
+      </div>
+    </div>
+
+    <!-- Comments & Discussion Section -->
+    <div class="card">
+      <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Issue Discussion & Updates</h2>
+      
+      <!-- Existing Comments -->
+      <div id="comments-list" style="margin-bottom: 1.5rem;">
+        <!-- Injected by student.js -->
+      </div>
+
+      <!-- Add Comment Form -->
+      <form id="comment-form" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <textarea
+          id="comment-input"
+          class="form-control"
+          placeholder="Add an update, follow-up information, or note..."
+          rows="3"
+          required
+        ></textarea>
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="submit" id="btn-add-comment" class="btn btn-primary">
+            Post Comment
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/notifications.js"></script>
+  <script src="/js/student.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      initIssueDetail();
+    });
+  </script>
+</body>
+</html>
