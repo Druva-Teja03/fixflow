@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from backend.app.main import app
 from backend.app.services.ai_service import generate_suggestions
 from backend.app.database import SessionLocal
-from backend.app.models import User, IssueSupporter
+from backend.app.models import User, IssueSupporter, Issue, IssueStatus
 
 client = TestClient(app)
 
@@ -72,6 +72,15 @@ def test_ai_suggest_api_endpoint(student1_token):
 
 def test_check_duplicates_detects_seeded_near_duplicate(student1_token):
     """Verify duplicate detection endpoint flags seeded Room 204 projector issue."""
+    # Ensure Issue 1 is open/assigned for duplicate candidate matching
+    db = SessionLocal()
+    iss = db.query(Issue).filter(Issue.issue_id == 1).first()
+    if iss and iss.status == IssueStatus.RESOLVED:
+        iss.status = IssueStatus.ASSIGNED
+        iss.resolved_at = None
+        db.commit()
+    db.close()
+
     payload = {
         "category": "Equipment",
         "block": "Block A",
@@ -103,12 +112,16 @@ def test_support_issue_lifecycle(student1_token, student4_token):
     - User cannot support the same issue twice
     - User cannot support a resolved issue
     """
-    # 0. Ensure student4 has not yet supported Issue 1 (idempotent cleanup)
+    # 0. Ensure student4 has not yet supported Issue 1 and Issue 1 is Assigned (idempotent cleanup)
     db = SessionLocal()
+    iss = db.query(Issue).filter(Issue.issue_id == 1).first()
+    if iss and iss.status == IssueStatus.RESOLVED:
+        iss.status = IssueStatus.ASSIGNED
+        iss.resolved_at = None
     s4_user = db.query(User).filter(User.email == "student4@fixflow.demo").first()
     if s4_user:
         db.query(IssueSupporter).filter(IssueSupporter.issue_id == 1, IssueSupporter.user_id == s4_user.user_id).delete()
-        db.commit()
+    db.commit()
     db.close()
 
     # Issue 1 was reported by student1 (idx 0 -> student1)

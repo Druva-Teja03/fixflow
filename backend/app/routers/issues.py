@@ -77,7 +77,7 @@ async def create_issue(
         )
 
     # Save uploaded image if provided
-    image_url = await save_uploaded_file(image)
+    image_url = await save_uploaded_file(image, db=db)
 
     # Create new Issue instance
     new_issue = Issue(

@@ -10,7 +10,9 @@ from sqlalchemy import (
     DateTime,
     Index,
     Boolean,
+    LargeBinary,
 )
+from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.app.database import Base
@@ -187,3 +189,15 @@ class Notification(Base):
 
     # Relationships
     user = relationship("User", back_populates="notifications")
+
+
+class UploadedImage(Base):
+    """Stores uploaded photo files as BLOBs for serverless/Vercel read-only filesystems."""
+    __tablename__ = "uploaded_images"
+
+    image_id = Column(Integer, primary_key=True, autoincrement=True)
+    filename = Column(String(255), nullable=False, unique=True, index=True)
+    content_type = Column(String(100), nullable=False, default="image/jpeg")
+    image_data = Column(LargeBinary().with_variant(LONGBLOB, "mysql"), nullable=False)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+

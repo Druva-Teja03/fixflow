@@ -4,12 +4,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from backend.app.config import settings
 from backend.app.database import engine, get_db, check_db_connection, Base
+from backend.app.models import UploadedImage
 from backend.app.routers import auth, meta, issues, admin, staff, analytics, ai, notifications
 
 # Setup logging
@@ -21,11 +22,16 @@ CURRENT_FILE = os.path.abspath(__file__)
 APP_DIR = os.path.dirname(CURRENT_FILE)
 BACKEND_DIR = os.path.dirname(APP_DIR)
 ROOT_DIR = os.path.dirname(BACKEND_DIR)
+PUBLIC_DIR = os.path.join(ROOT_DIR, "public")
 FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
+STATIC_DIR = PUBLIC_DIR if os.path.exists(PUBLIC_DIR) else FRONTEND_DIR
 UPLOADS_DIR = os.path.join(BACKEND_DIR, "uploads")
 
-# Ensure uploads directory exists
-os.makedirs(UPLOADS_DIR, exist_ok=True)
+# Ensure uploads directory exists (gracefully ignore on read-only filesystems like Vercel)
+try:
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+except OSError:
+    pass
 
 
 @asynccontextmanager
@@ -35,6 +41,10 @@ async def lifespan(app: FastAPI):
     db_ok = check_db_connection()
     if db_ok:
         logger.info("Database connection established successfully.")
+        try:
+            Base.metadata.create_all(bind=engine)
+        except Exception as exc:
+            logger.warning(f"Base.metadata.create_all note: {exc}")
     else:
         logger.warning("Could not connect to MySQL database during startup check.")
     yield
@@ -91,20 +101,52 @@ def health_check(db: Session = Depends(get_db)):
     }
 
 
-# Static file mounts
-# 1. Local image uploads
-if os.path.exists(UPLOADS_DIR):
-    app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+# Photo upload serving endpoints (supports database BLOB and local disk fallback)
+@app.get("/api/images/{filename}", tags=["Images"])
+def get_image_from_api(filename: str, db: Session = Depends(get_db)):
+    """Serve uploaded image from database BLOB or local disk."""
+    # 1. Query database BLOB
+    img = db.query(UploadedImage).filter(UploadedImage.filename == filename).first()
+    if img:
+        return Response(
+            content=img.image_data,
+            media_type=img.content_type,
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+    # 2. Fallback to local disk
+    local_path = os.path.join(UPLOADS_DIR, filename)
+    if os.path.exists(local_path):
+        return FileResponse(local_path)
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
 
-# 2. Frontend assets (CSS, JS, subdirectories)
-if os.path.exists(FRONTEND_DIR):
+
+@app.get("/uploads/{filename}", tags=["Images"])
+def get_image_from_uploads(filename: str, db: Session = Depends(get_db)):
+    """Serve image from local disk if available, otherwise from database BLOB."""
+    # 1. Check local disk first
+    local_path = os.path.join(UPLOADS_DIR, filename)
+    if os.path.exists(local_path):
+        return FileResponse(local_path)
+    # 2. Check database BLOB
+    img = db.query(UploadedImage).filter(UploadedImage.filename == filename).first()
+    if img:
+        return Response(
+            content=img.image_data,
+            media_type=img.content_type,
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+
+
+# Static file serving from public/ (or fallback frontend/)
+if os.path.exists(STATIC_DIR):
     # Explicit route for index / root
     @app.get("/", include_in_schema=False)
     async def serve_index():
-        index_file = os.path.join(FRONTEND_DIR, "index.html")
+        index_file = os.path.join(STATIC_DIR, "index.html")
         if os.path.exists(index_file):
             return FileResponse(index_file)
-        return {"message": "FixFlow Frontend ready. Please place index.html in frontend/"}
+        return {"message": "FixFlow ready. Please place index.html in public/"}
 
     # Mount static assets (css, js, html pages)
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

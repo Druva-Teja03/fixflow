@@ -90,3 +90,14 @@ CREATE TABLE IF NOT EXISTS notifications (
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   INDEX idx_user_read (user_id, is_read)
 );
+
+-- Uploaded image BLOB storage (for serverless / Vercel read-only filesystems)
+CREATE TABLE IF NOT EXISTS uploaded_images (
+  image_id     INT AUTO_INCREMENT PRIMARY KEY,
+  filename     VARCHAR(255) NOT NULL UNIQUE,
+  content_type VARCHAR(100) NOT NULL DEFAULT 'image/jpeg',
+  image_data   LONGBLOB NOT NULL,
+  created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_filename (filename)
+);
+

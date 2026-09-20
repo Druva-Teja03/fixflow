@@ -5,11 +5,20 @@ from backend.app.config import settings
 
 logger = logging.getLogger("fixflow.database")
 
+# Configure PyMySQL SSL if DB_SSL is enabled (for hosted/cloud MySQL)
+connect_args = {}
+if settings.DB_SSL:
+    ssl_config = {}
+    if settings.DB_SSL_CA:
+        ssl_config["ca"] = settings.DB_SSL_CA
+    connect_args["ssl"] = ssl_config
+
 # Create SQLAlchemy engine for MySQL with PyMySQL driver
 # pool_pre_ping=True prevents stale connection drops
 # pool_recycle=3600 recycles connections every hour
 engine = create_engine(
     settings.database_url,
+    connect_args=connect_args,
     pool_pre_ping=True,
     pool_recycle=3600,
     echo=(settings.APP_ENV == "debug"),

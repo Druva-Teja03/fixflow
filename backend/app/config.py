@@ -13,14 +13,16 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_HOURS: int = 12
     CORS_ORIGINS: str = "http://localhost:8000"
 
-    # Database Configuration (MySQL / Amazon RDS)
+    # Database Configuration (MySQL / Hosted MySQL / Cloud)
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
     DB_USER: str = "fixflow_user"
     DB_PASSWORD: str = "FixFlow@123"
     DB_NAME: str = "fixflow"
+    DB_SSL: bool = False
+    DB_SSL_CA: Optional[str] = None
 
-    # Storage Backend: "local" or "s3"
+    # Storage Backend: "local" or "database" (stores photo BLOB in MySQL for Vercel/serverless)
     STORAGE_BACKEND: str = "local"
     S3_BUCKET: Optional[str] = None
     AWS_REGION: str = "ap-south-1"

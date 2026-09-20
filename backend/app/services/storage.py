@@ -18,7 +18,10 @@ APP_DIR = os.path.dirname(CURRENT_DIR)
 BACKEND_DIR = os.path.dirname(APP_DIR)
 LOCAL_UPLOADS_DIR = os.path.join(BACKEND_DIR, "uploads")
 
-os.makedirs(LOCAL_UPLOADS_DIR, exist_ok=True)
+try:
+    os.makedirs(LOCAL_UPLOADS_DIR, exist_ok=True)
+except OSError:
+    pass
 
 
 def validate_image_file(file: UploadFile) -> str:
@@ -41,10 +44,13 @@ def validate_image_file(file: UploadFile) -> str:
     return ext_map.get(content_type, ".jpg")
 
 
-async def save_uploaded_file(file: Optional[UploadFile]) -> Optional[str]:
+async def save_uploaded_file(file: Optional[UploadFile], db=None) -> Optional[str]:
     """
     Validates, renames to a UUID, and saves an uploaded photo.
-    Returns the public URL string (e.g. '/uploads/uuid.jpg') or None if no file was uploaded.
+    - If STORAGE_BACKEND == "database": stores image bytes as a BLOB in MySQL
+      and returns endpoint URL '/api/images/{filename}'.
+    - If STORAGE_BACKEND == "local": writes to local disk and returns '/uploads/{filename}'.
+    Returns None if no file was uploaded.
     """
     if not file or not file.filename:
         return None
@@ -59,17 +65,57 @@ async def save_uploaded_file(file: Optional[UploadFile]) -> Optional[str]:
             detail=f"Image size exceeds 5 MB limit. Received: {len(content) / (1024 * 1024):.2f} MB.",
         )
 
-    # Storage backend selection
-    if settings.STORAGE_BACKEND == "s3":
-        # S3 integration will be plugged in Phase 5
-        logger.info("Storage backend set to S3. (Phase 5 will upload to S3). Saving locally for now.")
-    
-    # Local disk storage
     unique_filename = f"{uuid.uuid4().hex}{ext}"
-    destination_path = os.path.join(LOCAL_UPLOADS_DIR, unique_filename)
+    content_type = file.content_type or "image/jpeg"
 
-    with open(destination_path, "wb") as f:
-        f.write(content)
+    # Database BLOB storage for Vercel / serverless / cloud deployment
+    if settings.STORAGE_BACKEND in ("database", "db"):
+        from backend.app.models import UploadedImage
+        from backend.app.database import SessionLocal
 
-    logger.info(f"File uploaded successfully: {unique_filename} ({len(content)} bytes)")
-    return f"/uploads/{unique_filename}"
+        session = db if db is not None else SessionLocal()
+        should_close = (db is None)
+        try:
+            new_img = UploadedImage(
+                filename=unique_filename,
+                content_type=content_type,
+                image_data=content,
+            )
+            session.add(new_img)
+            session.commit()
+            logger.info(f"File uploaded to database BLOB: {unique_filename} ({len(content)} bytes)")
+        finally:
+            if should_close:
+                session.close()
+
+        return f"/api/images/{unique_filename}"
+
+    # Default: Local disk storage
+    try:
+        os.makedirs(LOCAL_UPLOADS_DIR, exist_ok=True)
+        destination_path = os.path.join(LOCAL_UPLOADS_DIR, unique_filename)
+        with open(destination_path, "wb") as f:
+            f.write(content)
+        logger.info(f"File uploaded successfully to disk: {unique_filename} ({len(content)} bytes)")
+        return f"/uploads/{unique_filename}"
+    except OSError as err:
+        # Fallback to database BLOB if local disk is read-only (e.g. on Vercel)
+        logger.warning(f"Local disk write failed ({err}). Falling back to database BLOB storage.")
+        from backend.app.models import UploadedImage
+        from backend.app.database import SessionLocal
+
+        session = db if db is not None else SessionLocal()
+        should_close = (db is None)
+        try:
+            new_img = UploadedImage(
+                filename=unique_filename,
+                content_type=content_type,
+                image_data=content,
+            )
+            session.add(new_img)
+            session.commit()
+        finally:
+            if should_close:
+                session.close()
+
+        return f"/api/images/{unique_filename}"

@@ -101,10 +101,10 @@ def test_notifications_on_status_change_and_resolution(admin_token, student1_tok
     2. Status update to Resolved notifies supporters as well.
     """
     db = SessionLocal()
-    # Find an assigned or in-progress issue
-    issue = db.query(Issue).filter(Issue.status == IssueStatus.IN_PROGRESS).first()
+    # Find an assigned or in-progress issue (preserve issues 1 & 2 for duplicate demo)
+    issue = db.query(Issue).filter(Issue.status == IssueStatus.IN_PROGRESS, Issue.issue_id > 2).first()
     if not issue:
-        issue = db.query(Issue).filter(Issue.status == IssueStatus.ASSIGNED).first()
+        issue = db.query(Issue).filter(Issue.status == IssueStatus.ASSIGNED, Issue.issue_id > 2).first()
     assert issue is not None
     issue_id = issue.issue_id
     reporter_id = issue.user_id

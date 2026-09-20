@@ -1,0 +1,7 @@
+tests/
+docs/
+venv/
+scratch/
+.pytest_cache/
+.env
+.git/
