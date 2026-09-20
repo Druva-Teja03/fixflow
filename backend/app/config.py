@@ -51,11 +51,12 @@ class Settings(BaseSettings):
         """Parse comma-separated origins into a clean list."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
-    # Look for .env in the project root
+    # Look for .env in the project root; ignore empty strings so defaults are preserved
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
+        env_ignore_empty=True,
     )
 
 

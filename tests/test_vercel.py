@@ -100,3 +100,20 @@ def test_db_ssl_setting():
     """Verify that DB_SSL configuration property is present and defaults to False."""
     assert hasattr(settings, "DB_SSL")
     assert settings.DB_SSL is False
+
+
+def test_empty_environment_variables_fallback_to_defaults(monkeypatch):
+    """Verify that empty string env vars are treated as not set and use defaults."""
+    from backend.app.config import Settings
+
+    monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_HOURS", "")
+    monkeypatch.setenv("DB_PORT", "")
+    monkeypatch.setenv("AI_ENABLED", "")
+    monkeypatch.setenv("NOTIFICATIONS_ENABLED", "")
+
+    test_settings = Settings()
+    assert test_settings.ACCESS_TOKEN_EXPIRE_HOURS == 12
+    assert test_settings.DB_PORT == 3306
+    assert test_settings.AI_ENABLED is True
+    assert test_settings.NOTIFICATIONS_ENABLED is False
+
